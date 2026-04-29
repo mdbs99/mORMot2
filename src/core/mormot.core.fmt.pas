@@ -2607,7 +2607,7 @@ end;
 procedure TYamlToJson.FillLines(const Yaml: RawUtf8);
 var
   lineStart, lineEnd, lineNext: PUtf8Char;
-  len: PtrInt;
+  len, indent: PtrInt;
   c: PYamlLine;
 begin
   fCount := 0;
@@ -2630,10 +2630,12 @@ begin
     else
       inc(c);
     // compute indentation count
-    while lineStart[c^.Indent] = ' ' do
-      inc(c^.Indent);
-    inc(lineStart, c^.Indent); // trim left
-    dec(len, c^.Indent);
+    indent := 0; // direct c^.Indent use trigger invalid code on FPC arm32
+    while lineStart[indent] = ' ' do
+      inc(indent);
+    inc(lineStart, indent); // trim left
+    dec(len, indent);
+    c^.Indent := indent;
     // upfront scan: reject multi-doc separators and YAML directives
     if lineStart^ = #9 then
       Error(fCount, 'tab characters are not allowed for indentation')
@@ -2727,8 +2729,11 @@ end;
 
 procedure YamlToVariant(const Yaml: RawUtf8; out Doc: TDocVariantData;
   Options: TDocVariantOptions);
+var
+  json: RawUtf8; // in two steps for FPC arm32
 begin
-  if Doc.InitJsonInPlace(pointer(YamlToJson(Yaml)), Options) = nil then
+  json := YamlToJson(Yaml);
+  if Doc.InitJsonInPlace(pointer(json), Options) = nil then
     EYamlException.RaiseU('YamlToVariant: JSON output error');
 end;
 
@@ -2747,18 +2752,13 @@ end;
 function TryYamlFileToVariant(const FileName: TFileName; out Doc: TDocVariantData;
   Options: TDocVariantOptions): boolean;
 var
-  content: RawUtf8;
+  yaml: RawUtf8;
 begin
-  content := RawUtf8FromFile(FileName); // BOM stripping
-  if content = '' then
+  yaml := RawUtf8FromFile(FileName); // BOM stripping
+  if yaml = '' then
     EYamlException.RaiseUtf8('TryYamlFileToVariant: file not found: %',
       [FileName]);
-  try
-    YamlToVariant(content, Doc, Options);
-    result := true;
-  except
-    result := false;
-  end;
+  result := TryYamlToVariant(yaml, Doc, Options);
 end;
 
 
