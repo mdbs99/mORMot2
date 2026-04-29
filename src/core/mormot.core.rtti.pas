@@ -8684,7 +8684,7 @@ begin
       if p^.Name <> '' then
       begin
         inc(result);
-        names := {%H-}names + '"' + p^.Name + '",';  // include trailing ,
+        Append(names, ['"', p^.Name, '",']);  // include trailing ,
       end;
       inc(p);
       dec(n);
