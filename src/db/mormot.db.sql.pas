@@ -7894,7 +7894,7 @@ begin // called at most every 32 seconds - ensured timeout <> 0 and secs <> 0
          not c.IsOutdated(secs) then
         continue;
       ObjArrayAddCount(delete, c, deletecount);
-      fConnectionPool[i] := nil; // release the slot
+      fConnectionPool[i] := nil; // instance is owned by delete[] now
     end;
   finally
     fConnectionPoolSafe.UnLock;

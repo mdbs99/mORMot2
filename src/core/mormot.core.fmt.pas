@@ -1563,7 +1563,7 @@ begin
              ((p - 1)^ in [' ', #9]) then
             break; // comment - no colon before it
         ':':
-          if p[1] in [#0, #9, ' '] then
+          if p[1] <= ' ' then
           begin
             result := p - PUtf8Char(pointer(S));
             exit;
@@ -1585,7 +1585,7 @@ begin
   if length(S) <> 1 then
   begin
     i := 2;
-    if not (S[i] in [' ', #9]) then // YAML requires '- '
+    if S[i] > ' ' then // YAML requires '- '
       exit;
     repeat
       inc(i);
@@ -1600,7 +1600,7 @@ function YamlDashLine(p: PUtf8Char): boolean;
 begin // fast check, no afterDash extraction
   result := (p <> nil) and
             (p[0] = '-') and
-            (p[1] in [#0, ' ', #9]);
+            (p[1] <= ' ');
 end;
 
 function YamlSpecialChars(p: PUtf8Char): boolean;
