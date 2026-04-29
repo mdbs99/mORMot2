@@ -151,7 +151,7 @@ type
   /// exception raised by YAML parser on unsupported or invalid input
   EYamlException = class(ESynException);
 
-  /// customize YAML serialization output
+  /// customize YAML serialization output - NOT IMPLEMENTED YET
   // - ywoFlowCompact: emit flow style ([] / {}) for short / leaf containers
   // - ywoNoComments: placeholder; this parser does not preserve comments
   TYamlWriterOption = (
@@ -184,8 +184,6 @@ function TryYamlFileToVariant(const FileName: TFileName; out Doc: TDocVariantDat
   Options: TDocVariantOptions = JSON_YAML): boolean;
 
 /// serialize a TDocVariant as YAML 1.2 UTF-8 text
-// - result is block-style by default; ywoFlowCompact switches leaf containers
-//   to flow style
 function VariantToYaml(const Doc: variant;
   Options: TYamlWriterOptions = []): RawUtf8;
 
@@ -1385,8 +1383,9 @@ end;
    Writer strategy: walk the TDocVariantData via TTextWriter and emit
    block-style YAML (flow-style when ywoFlowCompact is set).
 
-   This code was initialy proposed by zen010101, using Claude AI, with minimum
-   refactoring for integration into mORMot: performance is not the goal here.
+   This code was initialy proposed by zen010101, using Claude AI, with manual
+   refactoring for integration into mORMot: best performance is not the goal
+   here, even if we reach more than 100MB/s which seems fast enough for YAML.
 }
 
 type
@@ -2768,7 +2767,7 @@ type
   TVariantToYaml = class
   private
     fOut: TJsonWriter;
-    fOptions: TYamlWriterOptions;
+    fOptions: TYamlWriterOptions; // not used yet
     procedure WriteValue(vd: PDocVariantData; Indent: PtrInt);
     procedure WriteBlockMap(const dv: TDocVariantData; Indent: PtrInt);
     procedure WriteBlockSeq(const dv: TDocVariantData; Indent: PtrInt);
@@ -2922,19 +2921,19 @@ procedure TVariantToYaml.WriteValue(vd: PDocVariantData; Indent: PtrInt);
 var
   vt: cardinal;
 begin
-  vt := vd^.VarType;
-  if vt = varVariantByRef then
-  begin
-    vd := PVarData(vd)^.VPointer;
+  repeat
     vt := vd^.VarType;
-  end;
+    if vt <> varVariantByRef then
+      break;
+    vd := PVarData(vd)^.VPointer;
+  until false;
   if (vt <= varOleUInt) and
      (vt <> varOleStr) then
     // simple and numeric types share the same text form in JSON and YAML, so
     // let TJsonWriter.AddVariant emit them directly without any escaping
     fOut.AddVariant(PVariant(vd)^, twNone)
   else if vt = varString then
-    // in a TDocVariant, strings are usually normalized as RawUtf8
+    // in a TDocVariant, strings are usually normalized as RawUtf8 varString
     WriteYamlString(RawUtf8(PVarData(vd)^.VAny))
   else if (vd^.VarType = DocVariantVType) and
           (vd^.Kind <> dvUndefined) then
