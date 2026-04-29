@@ -9515,6 +9515,7 @@ procedure _App2(var res: RawUtf8; const add1, add2: RawByteString; const cp: int
   {$ifdef HASINLINE} inline; {$endif}
 var
   l, a, a1, a2: PtrInt;
+  r: PAnsiChar;
 begin
   a1 := length(add1); // no automatic UTF-8 conversion involved
   a2 := length(add2);
@@ -9523,11 +9524,12 @@ begin
     exit;
   l := length(res);
   SetLength(res, l + a);
+  r := pointer(res);
   {$ifdef HASCODEPAGE}
-  PStrRec(PAnsiChar(PtrUInt(res)) - _STRRECSIZE)^.CodePage := cp;
+  PStrRec(r - _STRRECSIZE)^.CodePage := cp;
   {$endif HASCODEPAGE}
-  MoveFast(pointer(add1)^, PByteArray(res)[l], a1);
-  MoveFast(pointer(add2)^, PByteArray(res)[l + a1], a2);
+  MoveFast(pointer(add1)^, r[l], a1);
+  MoveFast(pointer(add2)^, r[l + a1], a2);
 end;
 
 procedure Append(var Text: RawUtf8; const Added: RawByteString);
